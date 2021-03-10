@@ -78,7 +78,7 @@ app.post(apiPath + version +'/boards' , (req, res) => {
             return res.status(400).json({"message": "name and description are required in the request body."});
         }
     
-    if (req.body.name === ""){
+    if (req.body.name.trim() === ""){
         return res.status(400).json({"message": "name of the board may not be empty"})
     }
     
@@ -332,24 +332,12 @@ app.delete(apiPath + version +'/boards/:id/tasks/:taskID', (req, res) => {
                     if (tasks[i].id == req.params.taskID){
                         return res.status(200).json(tasks.splice(i, 1));
                     }
-                
-                }
-                if (i == tasks.length) {
-                    return res.status(404).json({"message": "Board with id " + req.params.id + " does not have task with id " + req.params.taskID + ", it does not exist."})
                 }
             }
-
-            else {
-                return res.status(404).json({"message": "Board with id " + req.params.id + " does not have task with id " + req.params.taskID + "."})
-            }
-            
-        }
-        if (j == boards.length) {
-            return res.status(404).json({"message": "Board with id " + req.params.id + " does not exist."})
         }
     }
 
-    return res.status(404).json({"message": "Board with id " + req.params.id + " and task id " + req.params.taskID + " does not exist."})
+    return res.status(404).json({"message": "Board with id " + req.params.id + " does not exist or does not have a task with task id " + req.params.taskID + "."})
 });
 
 
@@ -369,41 +357,52 @@ app.patch(apiPath + version + '/boards/:id/tasks/:taskID', (req, res) => {
             return res.status(400).json({"message": "There has to be at least a taskName, archived or boardId in the request body."})
         }
 
+    if (req.body.archived !== undefined && req.body.archived !== true && req.body.archived !== false){
+        return res.status(400).json({"message": "Archived has to be true or false"});
+    }
 
     for (let j = 0; j < boards.length; j++){
         if (boards[j].id == req.params.id) {
-            if (boards[j].tasks.includes(req.params.taskID)) {
+            // if (boards[j].tasks.includes(req.params.taskID)) {
                 for (let i = 0; i < tasks.length; i++){
-                    if (tasks[i].id == req.params.taskID){
-                        if (req.body.taskName !== undefined){
-                            tasks[i].taskName = req.body.taskName;
-                        }
-                        if (req.body.archived !== undefined){
-                            tasks[i].archived = req.body.archived;
-                        }
+                    if (tasks[i].id == req.params.taskID && tasks[i].boardId == req.params.id){
                         if (req.body.boardId !== undefined){
                             //remove the task from the old board
                             var oldBoardId = tasks[i].boardId;
-                            for (let i=0; i < boards.length; i++){
-                                if (boards[i].id == oldBoardId){
-                                    boards[i].tasks.splice(i, 1);
+                            for (let k = 0; k < boards.length; k++){
+                                if (boards[k].id == oldBoardId){
+                                    for (let j = 0; j < boards[k].tasks.length; j++){
+                                        if(boards[k].tasks[j] == req.params.taskID){
+                                            boards[k].tasks.splice(j, 1);
+                                            break;
+                                        }
+                                    }
                                 }
                             }
                             // add the task to the new board
-                            tasks[i].boardId = req.body.boardId;
-                            boards[req.body.boardId].tasks.push(tasks[i].id);
+                            for (let l = 0; l < boards.length; l++){
+                                if (boards[l].id == req.body.boardId){
+                                    tasks[i].boardId = req.body.boardId;
+                                    boards[l].tasks.push(tasks[i].id);
+                                }
+                                else if (l == boards.length - 1){
+                                    return res.status(404).json({"message": "Board with id " + req.body.boardId + " does not exist."})
+                                }
+                            }
                         }
-
-
-
-                        //return res.status(200).json(tasks.splice(i, 1));
+                        if (req.body.archived !== undefined && (req.body.archived == true || req.body.archived == false)){
+                            tasks[i].archived = req.body.archived;
+                        }
+                        if (req.body.taskName !== undefined){
+                            tasks[i].taskName = req.body.taskName;
+                        }
+                        return res.status(200).json(tasks[i]);
                     }
                 
                 }
-            }
         }
     }
-
+    return res.status(404).json({"message": "Board with id " + req.params.id + " does not exist or does not have a task with task id " + req.params.taskID + "."})
 });
 
 
