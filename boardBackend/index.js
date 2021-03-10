@@ -103,7 +103,7 @@ app.put(apiPath + version +'/boards/:id', (req, res) => {
             return res.status(400).json({"message": "There has to be a name and a description in the request body."});
         }
 
-    if (req.body.name === ""){
+    if (req.body.name.trim() === ""){
         return res.status(400).json({"message": "name of the board may not be empty"});
         }
     
@@ -398,7 +398,6 @@ app.patch(apiPath + version + '/boards/:id/tasks/:taskID', (req, res) => {
                         }
                         return res.status(200).json(tasks[i]);
                     }
-                
                 }
         }
     }
