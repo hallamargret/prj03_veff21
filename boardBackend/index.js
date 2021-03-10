@@ -181,19 +181,34 @@ app.delete(apiPath + version + '/boards', (req, res) => {
 
 
 
-function cmpByID(id1, id2){
-    return Number(id1) - Number(id2);
+function cmpByID(t1, t2){
+    return Number(t1.id) - Number(t2.id);
 
 }
 
-function cmpBydateCreated(date1, date2){
-    return (date1 - date2);
+function cmpBydateCreated(t1, t2){
+    if (t1.dateCreated < t2.dateCreated){
+        return -1;
+    }
+    else if (t1.dateCreated == t2.dateCreated){
+        return 0;
+    }
+    else {
+        return 1;
+    }
 
 }
 
-function cmpByTaskName(tName1, tName2){
-    //if (tName1 < tName2)
-    return (tName1 < tName2);
+function cmpByTaskName(t1, t2){
+    if (t1.taskName < t2.taskName){
+        return -1;
+    }
+    else if (t1.taskName == t2.taskName){
+        return 0;
+    }
+    else {
+        return 1;
+    }
 }
 
 
@@ -226,7 +241,7 @@ app.get(apiPath + version +'/boards/:id/tasks', (req, res) => {
     }
 
     if (taskArray.length > 1){
-        if (req.query.sort ==="taskName") {
+        if (req.query.sort === "taskName") {
             taskArray = taskArray.sort(cmpByTaskName);
         }
         if (req.query.sort === "dateCreated") {
@@ -235,13 +250,10 @@ app.get(apiPath + version +'/boards/:id/tasks', (req, res) => {
         if (req.query.sort === "id") {
             taskArray = taskArray.sort(cmpByID);
         }
-        if (req.query.sort !="taskName" && req.query.sort !="dateCreated" && req.query.sort !="id") {
+        if (req.query.sort != "taskName" && req.query.sort != "dateCreated" && req.query.sort != "id") {
             taskArray = taskArray.sort(cmpByID);
         }
-
     }
-    
-
     //console.log(req.query.sort);
     return res.status(200).json(taskArray);
 })
