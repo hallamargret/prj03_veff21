@@ -32,34 +32,39 @@ var boards = [
 ];
 
 var tasks = [
-    { id: '0', boardId: '0', taskName: "Another task", dateCreated: new Date(Date.UTC(2021, 00, 21, 15, 48)), archived: false },
-    { id: '1', boardId: '0', taskName: "Prepare exam draft", dateCreated: new Date(Date.UTC(2021, 00, 21, 16, 48)), archived: false },
-    { id: '2', boardId: '0', taskName: "Discuss exam organisation", dateCreated: new Date(Date.UTC(2021, 00, 21, 14, 48)), archived: false },
-    { id: '3', boardId: '3', taskName: "Prepare assignment 2", dateCreated: new Date(Date.UTC(2021, 00, 10, 16, 00)), archived: true }
+    { id: '0', boardId: '0', taskName: "Another task", dateCreated: (new Date(Date.UTC(2021, 00, 21, 15, 48))).getTime(), archived: false },
+    { id: '1', boardId: '0', taskName: "Prepare exam draft", dateCreated: (new Date(Date.UTC(2021, 00, 21, 16, 48))).getTime(), archived: false },
+    { id: '2', boardId: '0', taskName: "Discuss exam organisation", dateCreated: (new Date(Date.UTC(2021, 00, 21, 14, 48))).getTime(), archived: false },
+    { id: '3', boardId: '3', taskName: "Prepare assignment 2", dateCreated: (new Date(Date.UTC(2021, 00, 10, 16, 00))).getTime(), archived: true }
 ];
+
+
 
 //Your endpoints go here
 
+// Endpoints for bords
+
 // 1. Read/get all boards
+// GET /api/v1/boards
+
 app.get(apiPath + version +'/boards', (req, res) => {
-    let boardarray = [];
+    let boardArray = [];
     for (let i = 0; i < boards.length; i++){
-        boardarray.push({id: boards[i].id, name: boards[i].name, description: boards[i].description});
+        boardArray.push({id: boards[i].id, name: boards[i].name, description: boards[i].description});
     }
-    console.log(req.query.sort);
-    return res.status(200).json(boardarray);
+    return res.status(200).json(boardArray);
 })
 
 
 // 2.  Read/get an individual board
+// GET /api/v1/boards/:id
+
 app.get(apiPath + version + '/boards/:id', (req, res) =>{
-    console.log('req.params', req.params); // to get the id
-    
     if (isNaN(req.params.id)) {
         return res.status(400).json({"message": "Error. Board id needs to be a number."});
     } 
 
-    for ( let i = 0; i< boards.length; i++) {
+    for ( let i = 0; i < boards.length; i++) {
         if (boards[i].id == req.params.id){
             return res.status(200).json(boards[i]);
 
@@ -70,6 +75,7 @@ app.get(apiPath + version + '/boards/:id', (req, res) =>{
 
 
 //3.  Create a new board
+// POST /api/v1/boards
 app.post(apiPath + version +'/boards' , (req, res) => {
     if (req.body === undefined ||
         req.body.name === undefined ||
@@ -96,7 +102,7 @@ app.post(apiPath + version +'/boards' , (req, res) => {
 
 
 // 4.   Update a board
-
+// PUT /api/v1/boards/:id
 app.put(apiPath + version +'/boards/:id', (req, res) => {
     if (req.body === undefined || req.body.name == undefined || req.body.description === undefined) 
         {
@@ -129,6 +135,7 @@ app.put(apiPath + version +'/boards/:id', (req, res) => {
 
 
 // 5.  Delete a board
+// DELETE /api/v1/boards/:id
 app.delete(apiPath + version +'/boards/:id', (req, res) => {
     if (isNaN(req.params.id)) {
         return res.status(400).json({"message": "Error, id needs to be a number."});
@@ -144,6 +151,12 @@ app.delete(apiPath + version +'/boards/:id', (req, res) => {
 
     for (let i = 0; i < boards.length; i++){
         if (boards[i].id == req.params.id) {
+            // delete the tasks that belong to the board that is being deleted
+            for (let j = tasks.length - 1; j >= 0; j--){
+                if (tasks[j].boardId == req.params.id) {
+                    tasks.splice(j,1);
+                }
+            }
             return res.status(200).json(boards.splice(i, 1));
         }
     }
@@ -154,23 +167,22 @@ app.delete(apiPath + version +'/boards/:id', (req, res) => {
 
 
 
+
 // 6.  Delete all boards
+// DELETE /api/v1/boards
 app.delete(apiPath + version + '/boards', (req, res) => {
     var returnBoardsArray = boards.splice(0, boards.length);
-    //boards = [];
 
     for (let i = 0; i < returnBoardsArray.length; i++){
-        //let taskIds = returnBoardsArray[i].tasks.slice();
         returnBoardsArray[i].tasks = [];
 
         for (let j = tasks.length - 1; j >= 0; j--){
-            //if (taskIds.includes(task[j].id)) {
                 if (tasks[j].boardId == returnBoardsArray[i].id) {
                 returnBoardsArray[i].tasks.push(tasks.splice(j,1));
             }
         }
     }
-    console.log(returnBoardsArray);
+
     return res.status(200).json(returnBoardsArray);
 });
 
@@ -180,7 +192,7 @@ app.delete(apiPath + version + '/boards', (req, res) => {
 // Tasks
 
 
-
+// the next 3 functions are helper functions for sorting when getting all the tasks for a board
 function cmpByID(t1, t2){
     return Number(t1.id) - Number(t2.id);
 
@@ -216,7 +228,7 @@ function cmpByTaskName(t1, t2){
 
 
 // 1. Read all tasks for a specified board
-// GET /api/v1/boards/:id/tasks
+// GET /api/v1/boards/:id/tasks?sort=id (/taskName/dateCreated)
 
 app.get(apiPath + version +'/boards/:id/tasks', (req, res) => {
     if (isNaN(req.params.id)) {
@@ -227,9 +239,9 @@ app.get(apiPath + version +'/boards/:id/tasks', (req, res) => {
         if (boards[i].id == req.params.id){
             break;
         }
-        if (i == boards.length && req.params.id != boards[i].id) {
+        if (i == (boards.length-1) && req.params.id != boards[i].id) {
             return res.status(404).json({"message": "Board with id " + req.params.id + " does not exist."});
-        }   
+        }
     }
 
     let taskArray = [];
@@ -250,11 +262,12 @@ app.get(apiPath + version +'/boards/:id/tasks', (req, res) => {
         if (req.query.sort === "id") {
             taskArray = taskArray.sort(cmpByID);
         }
+        // if there is no parameter for sorting, then the tasks are sorted by ids by default
         if (req.query.sort != "taskName" && req.query.sort != "dateCreated" && req.query.sort != "id") {
             taskArray = taskArray.sort(cmpByID);
         }
     }
-    //console.log(req.query.sort);
+
     return res.status(200).json(taskArray);
 })
 
@@ -270,7 +283,7 @@ app.get(apiPath + version + '/boards/:id/tasks/:taskId', (req, res) =>{
     } 
 
     if (isNaN(req.params.taskId)) {
-        return res.status(400).json({"message": "Error. task id needs to be a number."});
+        return res.status(400).json({"message": "Error. Task id needs to be a number."});
     } 
 
     for (let j = 0; j < boards.length ; j++){
@@ -299,15 +312,14 @@ app.get(apiPath + version + '/boards/:id/tasks/:taskId', (req, res) =>{
     if (isNaN(req.params.id)) {
         return res.status(400).json({"message": "Error. Board id needs to be a number."});
     } 
-    
-    if (req.body.taskName === ""){
+
+    if (req.body.taskName.trim() === ""){
         return res.status(400).json({"message": "name of the task may not be empty"})
     }
     
     for (let i=0; i < boards.length; i++){
         if (req.params.id == boards[i].id){
             var myNewTask = {id: nextTaskId, boardId: req.params.id, taskName: req.body.taskName, dateCreated: (new Date).getTime(), archived: false};
-            // need to add the date to the new task, need to figure out how to make the date
             
             boards[i].tasks.push(myNewTask.id);
             tasks.push(myNewTask);
@@ -322,7 +334,6 @@ app.get(apiPath + version + '/boards/:id/tasks/:taskId', (req, res) =>{
 
 });
 
-//{ id: '3', boardId: '3', taskName: "Prepare assignment 2", dateCreated: new Date(Date.UTC(2021, 00, 10, 16, 00)), archived: true }
 
 
 // 4. Delete a task for a specified board
@@ -340,16 +351,27 @@ app.delete(apiPath + version +'/boards/:id/tasks/:taskID', (req, res) => {
     for (let j = 0; j < boards.length; j++){
         if (boards[j].id == req.params.id) {
             if (boards[j].tasks.includes(req.params.taskID)) {
-                for (let i = 0; i < tasks.length; i++){
-                    if (tasks[i].id == req.params.taskID){
-                        return res.status(200).json(tasks.splice(i, 1));
+                // find where the task is located in the task array inside board
+                for (let k = 0; k < boards[j].tasks.length; k++){
+                    if (boards[j].tasks[k] == req.params.taskID){
+                        boards[j].tasks.splice(k,1);
                     }
                 }
+            }
+            else{
+                return res.status(404).json({"message": "Board with id " + req.params.id + " does not have a task with task id " + req.params.taskID + "."})
             }
         }
     }
 
-    return res.status(404).json({"message": "Board with id " + req.params.id + " does not exist or does not have a task with task id " + req.params.taskID + "."})
+    for (let i = 0; i < tasks.length; i++){
+        if (tasks[i].id == req.params.taskID && tasks[i].boardId == req.params.id){
+            
+            return res.status(200).json(tasks.splice(i, 1));
+        }
+    }
+
+    return res.status(404).json({"message": "Board with id " + req.params.id + " and with task id " + req.params.taskID + " does not exist."})
 });
 
 
@@ -358,7 +380,7 @@ app.delete(apiPath + version +'/boards/:id/tasks/:taskID', (req, res) => {
 
 app.patch(apiPath + version + '/boards/:id/tasks/:taskID', (req, res) => {
     if (isNaN(req.params.id)) {
-        return res.status(400).json({"message": "Error, id needs to be a number."});
+        return res.status(400).json({"message": "Error, board id needs to be a number."});
     }
 
     if (isNaN(req.params.taskID)) {
@@ -370,56 +392,60 @@ app.patch(apiPath + version + '/boards/:id/tasks/:taskID', (req, res) => {
         }
 
     if (req.body.archived !== undefined && req.body.archived !== true && req.body.archived !== false){
-        return res.status(400).json({"message": "Archived has to be true or false"});
+        return res.status(400).json({"message": "Archived has to be true or false."});
     }
+
+    if (req.body.boardId !== undefined && isNaN(req.body.boardId)){
+        return res.status(400).json({"message": "BoardID has to be a number."});
+    }
+
+    
 
     for (let j = 0; j < boards.length; j++){
         if (boards[j].id == req.params.id) {
-            // if (boards[j].tasks.includes(req.params.taskID)) {
-                for (let i = 0; i < tasks.length; i++){
-                    if (tasks[i].id == req.params.taskID && tasks[i].boardId == req.params.id){
-                        if (req.body.boardId !== undefined){
-                            //remove the task from the old board
-                            var oldBoardId = tasks[i].boardId;
-                            for (let k = 0; k < boards.length; k++){
-                                if (boards[k].id == oldBoardId){
-                                    for (let j = 0; j < boards[k].tasks.length; j++){
-                                        if(boards[k].tasks[j] == req.params.taskID){
-                                            boards[k].tasks.splice(j, 1);
-                                            break;
-                                        }
-                                    }
-                                }
+            for (let i = 0; i < tasks.length; i++){
+                if (tasks[i].id == req.params.taskID && tasks[i].boardId == req.params.id){
+                    if (req.body.boardId !== undefined){
+                        // add the task to the board with the new boardId
+                        for (let l = 0; l < boards.length; l++){
+                            if (boards[l].id == req.body.boardId){
+                                tasks[i].boardId = req.body.boardId;
+                                boards[l].tasks.push(tasks[i].id);
+                                break;
                             }
-                            // add the task to the new board
-                            for (let l = 0; l < boards.length; l++){
-                                if (boards[l].id == req.body.boardId){
-                                    tasks[i].boardId = req.body.boardId;
-                                    boards[l].tasks.push(tasks[i].id);
-                                }
-                                else if (l == boards.length - 1){
-                                    return res.status(404).json({"message": "Board with id " + req.body.boardId + " does not exist."})
-                                }
+                            // The board with the new boardId does not exist
+                            else if (l == boards.length - 1){
+                                return res.status(404).json({"message": "Board with id " + req.body.boardId + " does not exist."})
                             }
                         }
-                        if (req.body.archived !== undefined && (req.body.archived == true || req.body.archived == false)){
-                            tasks[i].archived = req.body.archived;
+                        //remove the task from the old board
+                        for (let k = 0; k < boards[j].tasks.length; k++){
+                            if(boards[j].tasks[k] == req.params.taskID){
+                                boards[j].tasks.splice(k, 1);
+                                break;
+                            }
                         }
-                        if (req.body.taskName !== undefined){
-                            tasks[i].taskName = req.body.taskName;
-                        }
-                        return res.status(200).json(tasks[i]);
                     }
+                    if (req.body.archived !== undefined && (req.body.archived == true || req.body.archived == false)){
+                        tasks[i].archived = req.body.archived;
+                    }
+                    if (req.body.taskName !== undefined){
+                        tasks[i].taskName = req.body.taskName;
+                    }
+                    return res.status(200).json(tasks[i]);
                 }
+            }
         }
     }
     return res.status(404).json({"message": "Board with id " + req.params.id + " does not exist or does not have a task with task id " + req.params.taskID + "."})
 });
 
 
-
+app.use('*', (req, res) => {
+    res.status(405).json({"message": "Opperation not allowed"});
+});
 
 //Start the server
 app.listen(port, () => {
-    console.log('Event app listening...');
+    console.log('Board app listening...');
 });
