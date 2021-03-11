@@ -306,7 +306,7 @@ app.get(apiPath + version + '/boards/:id/tasks/:taskId', (req, res) =>{
     
     for (let i=0; i < boards.length; i++){
         if (req.params.id == boards[i].id){
-            var myNewTask = {id: nextTaskId, boardId: req.params.id, taskName: req.body.taskName, dateCreated: Date.now(), archived: false};
+            var myNewTask = {id: nextTaskId, boardId: req.params.id, taskName: req.body.taskName, dateCreated: (new Date).getTime(), archived: false};
             // need to add the date to the new task, need to figure out how to make the date
             
             boards[i].tasks.push(myNewTask.id);
