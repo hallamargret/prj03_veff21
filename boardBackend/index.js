@@ -312,10 +312,6 @@ app.get(apiPath + version + '/boards/:id/tasks/:taskId', (req, res) =>{
     if (isNaN(req.params.id)) {
         return res.status(400).json({"message": "Error. Board id needs to be a number."});
     } 
-
-    if (req.body.taskName.trim() === ""){
-        return res.status(400).json({"message": "name of the task may not be empty"})
-    }
     
     for (let i=0; i < boards.length; i++){
         if (req.params.id == boards[i].id){
